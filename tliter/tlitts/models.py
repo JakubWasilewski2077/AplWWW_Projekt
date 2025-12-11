@@ -7,6 +7,7 @@ class Tlitt(models.Model):
     contents = models.TextField(max_length=140)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    hashtags = models.ManyToManyField("Hashtag", related_name="tagged_tlitts", blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -35,7 +36,6 @@ class Comment(models.Model):
 
 class Hashtag(models.Model):
     contents = models.CharField(max_length=50, unique=True)
-    tlitts = models.ManyToManyField('Tlitt', blank=True)
 
     class Meta:
         ordering = ['contents']

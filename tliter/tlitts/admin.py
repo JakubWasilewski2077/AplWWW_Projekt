@@ -30,14 +30,9 @@ class CommentAdmin(admin.ModelAdmin):
         return " ".join(contents_skr[:10]) + "..."
 
 class HashtagAdmin(admin.ModelAdmin):
-    list_display = ['id', 'contents', 'tlitt_number']
+    list_display = ['id', 'contents']
     search_fields = ['contents']
     ordering = ['contents']
-
-    def tlitt_number(self, obj):
-        return obj.tlitts.count()
-
-    tlitt_number.short_description = 'liczba tlitt'
 
 class LikeAdmin(admin.ModelAdmin):
     list_display = ['id','user','tlitt']
