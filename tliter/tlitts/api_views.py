@@ -1,18 +1,15 @@
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-
-from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from .models import Tlitt, Comment, Hashtag, Like, Follow
 from .serializers import TlittSerializer, CommentSerializer, HashtagSerializer, LikeSerializer, FollowSerializer
-
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-from django.contrib.auth.decorators import permission_required
-from django.http import HttpResponse
+from django.core.exceptions import PermissionDenied
+
 
 
 
@@ -66,10 +63,16 @@ def tlitt_create(request):
 @authentication_classes([SessionAuthentication, BasicAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def tlitt_detail(request, pk):
+
     try:
         tlitt = Tlitt.objects.get(pk=pk)
     except Tlitt.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+    if not (
+        request.user == tlitt.creator
+        or request.user.has_perm("tlitts.edit_delete_all_tlitts")
+    ):
+        raise PermissionDenied()
 
     if request.method == 'GET':
         serializer = TlittSerializer(tlitt)
@@ -119,6 +122,12 @@ def comment_detail(request, pk):
     except Comment.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+    if not (
+        request.user == comment.creator
+        or request.user.has_perm("tlitts.edit_delete_all_comments")
+    ):
+        raise PermissionDenied()
+
     if request.method == 'GET':
         serializer = CommentSerializer(comment)
         return Response(serializer.data)
@@ -167,6 +176,11 @@ def hashtag_detail(request, pk):
     except Hashtag.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+    if not (
+        request.user.has_perm("tlitts.edit_delete_all_hashtag")
+    ):
+        raise PermissionDenied()
+
     if request.method == 'GET':
         serializer = HashtagSerializer(hashtag)
         return Response(serializer.data)
@@ -213,6 +227,9 @@ def like_detail(request, pk):
         like = Like.objects.get(pk=pk)
     except Like.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if not (request.user == like.user):
+        raise PermissionDenied()
 
     if request.method == 'GET':
         serializer = LikeSerializer(like)
@@ -262,6 +279,9 @@ def follow_detail(request, pk):
     except Follow.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+    if not (request.user == follow.follower):
+        raise PermissionDenied()
+
     if request.method == 'GET':
         serializer = FollowSerializer(follow)
         return Response(serializer.data)
@@ -276,3 +296,36 @@ def follow_detail(request, pk):
     elif request.method == 'DELETE':
         follow.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication, BasicAuthentication, TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def feed(request):
+    user = request.user
+    following_ids = Follow.objects.filter(follower=user).values_list('following_id', flat=True)
+
+    tlitts = Tlitt.objects.filter(creator__in= following_ids).order_by('-created_at')
+
+    serializer = TlittSerializer(tlitts, many=True)
+    return Response(serializer.data)
+
+
+
+@api_view(['GET'])
+def user_stats(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response(status=404)
+
+    stats = {
+        "username": user.username,
+        "tlitts_count": Tlitt.objects.filter(creator=user).count(),
+        "followers": Follow.objects.filter(following=user).count(),
+        "following": Follow.objects.filter(follower=user).count(),
+        "likes_given": Like.objects.filter(user=user).count(),
+    }
+
+    return Response(stats)

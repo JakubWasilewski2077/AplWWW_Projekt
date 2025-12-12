@@ -10,6 +10,8 @@ class Tlitt(models.Model):
     hashtags = models.ManyToManyField("Hashtag", related_name="tagged_tlitts", blank=True)
 
     class Meta:
+        permissions = [("tlitts.change_tlitt", "tlitts change tlitt"),
+                       ("edit_delete_all_tlitts", "Użytkownik może edytować i usuwać posty każdego takkk")]
         ordering = ['-created_at']
 
     def __str__(self):
@@ -25,6 +27,9 @@ class Comment(models.Model):
     tlitt = models.ForeignKey(Tlitt, on_delete=models.CASCADE)
 
     class Meta:
+    #    permissions = [("can edit and delete all comments", "Użytkownik może edytować i usuwać komentarze każdego")]
+        permissions = [("tlitts.change_comment", "tlitts change comment"),
+                       ("edit_delete_all_comments", "Użytkownik może edytować i usuwać komentarz każdego takkk")]
         ordering = ['-created_at']
 
     def __str__(self):
@@ -38,6 +43,8 @@ class Hashtag(models.Model):
     contents = models.CharField(max_length=50, unique=True)
 
     class Meta:
+        permissions = [("tlitts.change_hashtag", "tlitts change hashtag"),
+                       ("edit_delete_all_hashtag", "Użytkownik może edytować i usuwać hasztagi takkk")]
         ordering = ['contents']
 
     def __str__(self):

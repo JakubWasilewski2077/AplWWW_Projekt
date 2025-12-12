@@ -32,6 +32,7 @@ urlpatterns = [
     path('follow/<int:pk>/', api_views.follow_detail),
 
 
-
+    path('feed/', api_views.feed),
+    path('user_stats/<int:pk>/', api_views.user_stats),
 
 ]
